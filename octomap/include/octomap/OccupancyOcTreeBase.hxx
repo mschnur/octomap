@@ -33,8 +33,10 @@
 
 #include <bitset>
 #include <algorithm>
+#include <iostream>
 
 #include <octomap/MCTables.h>
+#include <octomap/octomap_timing.h>
 
 namespace octomap {
 
@@ -86,11 +88,15 @@ namespace octomap {
   void OccupancyOcTreeBase<NODE>::insertPointCloud(const Pointcloud& scan, const octomap::point3d& sensor_origin,
                                              double maxrange, bool lazy_eval, bool discretize) {
 
+	timeval startRT = {}, stopRT = {}, stopUp = {};
     KeySet free_cells, occupied_cells;
+	gettimeofday(&startRT, NULL);  // start ray trace timer
     if (discretize)
       computeDiscreteUpdate(scan, sensor_origin, free_cells, occupied_cells, maxrange);
     else
       computeUpdate(scan, sensor_origin, free_cells, occupied_cells, maxrange);
+  
+	gettimeofday(&stopRT, NULL);  // stop ray trace timer + start update timer
 
     // insert data into tree  -----------------------
     for (KeySet::iterator it = free_cells.begin(); it != free_cells.end(); ++it) {
@@ -99,6 +105,12 @@ namespace octomap {
     for (KeySet::iterator it = occupied_cells.begin(); it != occupied_cells.end(); ++it) {
       updateNode(*it, true, lazy_eval);
     }
+	gettimeofday(&stopUp, NULL);  // stop update timer
+	
+	double rtTime = (stopRT.tv_sec - startRT.tv_sec) + 1.0e-6 *(stopRT.tv_usec - startRT.tv_usec);
+	double upTime = (stopUp.tv_sec - stopRT.tv_sec) + 1.0e-6 *(stopUp.tv_usec - stopRT.tv_usec);
+	//std::cout << "Ray traces took " << rtTime << " s, update took " << upTime << " s" << std::endl;
+	std::cout << rtTime << "," << upTime << ",";
   }
 
   template <class NODE>
