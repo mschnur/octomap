@@ -91,6 +91,23 @@ namespace octomap {
 	timeval startRT = {}, stopRT = {}, stopUp = {};
     KeySet free_cells, occupied_cells;
 	gettimeofday(&startRT, NULL);  // start ray trace timer
+#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE
+	if (discretize)
+      computeDiscreteUpdate(scan, sensor_origin, free_cells, occupied_cells, maxrange);
+    else
+      computeUpdate(scan, sensor_origin, free_cells, occupied_cells, maxrange);
+  
+	gettimeofday(&stopRT, NULL);  // stop ray trace timer + start update timer
+
+    // insert data into tree  -----------------------
+    for (KeySet::iterator it = free_cells.begin(); it != free_cells.end(); ++it) {
+      updateNode(*it, false, lazy_eval);
+    }
+    for (KeySet::iterator it = occupied_cells.begin(); it != occupied_cells.end(); ++it) {
+      updateNode(*it, true, lazy_eval);
+    }
+	gettimeofday(&stopUp, NULL);  // stop update timer
+#else
     if (discretize)
       computeDiscreteUpdate(scan, sensor_origin, free_cells, occupied_cells, maxrange);
     else
@@ -106,7 +123,7 @@ namespace octomap {
       updateNode(*it, true, lazy_eval);
     }
 	gettimeofday(&stopUp, NULL);  // stop update timer
-	
+#endif
 	double rtTime = (stopRT.tv_sec - startRT.tv_sec) + 1.0e-6 *(stopRT.tv_usec - startRT.tv_usec);
 	double upTime = (stopUp.tv_sec - stopRT.tv_sec) + 1.0e-6 *(stopUp.tv_usec - stopRT.tv_usec);
 	//std::cout << "Ray traces took " << rtTime << " s, update took " << upTime << " s" << std::endl;
@@ -282,8 +299,13 @@ namespace octomap {
 
     bool createdRoot = false;
     if (this->root == NULL){
+#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE
+      this->root = new NODE(0, static_cast<float>(OcTreeBaseImpl<NODE,AbstractOccupancyOcTree>::getNodeSize(0)), 
+	                        0.0f, 0.0f, 0.0f);
+#else
       this->root = new NODE();
-      this->tree_size++;
+#endif
+	  this->tree_size++;
       createdRoot = true;
     }
 
@@ -324,7 +346,12 @@ namespace octomap {
 
     bool createdRoot = false;
     if (this->root == NULL){
+#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE
+      this->root = new NODE(0, static_cast<float>(OcTreeBaseImpl<NODE,AbstractOccupancyOcTree>::getNodeSize(0)), 
+	                        0.0f, 0.0f, 0.0f);
+#else
       this->root = new NODE();
+#endif
       this->tree_size++;
       createdRoot = true;
     }
@@ -947,7 +974,12 @@ namespace octomap {
       return s;
     }
 
-    this->root = new NODE();
+#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE
+      this->root = new NODE(0, static_cast<float>(OcTreeBaseImpl<NODE,AbstractOccupancyOcTree>::getNodeSize(0)), 
+	                        0.0f, 0.0f, 0.0f);
+#else
+      this->root = new NODE();
+#endif
     this->readBinaryNode(s, this->root);
     this->size_changed = true;
     this->tree_size = OcTreeBaseImpl<NODE,AbstractOccupancyOcTree>::calcNumNodes();  // compute number of nodes    

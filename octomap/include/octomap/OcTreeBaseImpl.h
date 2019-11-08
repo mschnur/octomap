@@ -123,7 +123,7 @@ namespace octomap {
     
     // -- Tree structure operations formerly contained in the nodes ---
    
-    /// Creates (allocates) the i-th child of the node. @return ptr to newly create NODE
+    /// Creates (allocates) the i-th child of the node-> @return ptr to newly create NODE
     NODE* createNodeChild(NODE* node, unsigned int childIdx);
     
     /// Deletes the i-th child of the node
@@ -555,6 +555,7 @@ namespace octomap {
 
     double max_value[3]; ///< max in x, y, z
     double min_value[3]; ///< min in x, y, z
+	double total_metric_size[3]; ///< metric size in x, y, z
     /// contains the size of a voxel at level i (0: root node). tree_depth+1 levels (incl. 0)
     std::vector<double> sizeLookupTable;
 

@@ -33,6 +33,63 @@
 
 namespace octomap {
 
+#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE	
+	template <typename T>
+	OcTreeDataNode<T>::OcTreeDataNode(unsigned int d, float size, float cx, float cy, float cz)
+		: xmin(cx - size/2.0f),
+		  xmax(cx + size/2.0f),
+		  ymin(cy - size/2.0f),
+		  ymax(cy + size/2.0f),
+		  zmin(cz - size/2.0f),
+		  zmax(cz + size/2.0f),
+		  size(size), centerX(cx), centerY(cy), centerZ(cz),
+		  depth(d),
+		  children(NULL)
+		  
+	{
+	}
+			  
+	
+	
+	template <typename T>
+	OcTreeDataNode<T>::OcTreeDataNode(T initVal, unsigned int d, float size, float cx, float cy, float cz)
+		: xmin(cx - size/2.0f),
+		  xmax(cx + size/2.0f),
+		  ymin(cy - size/2.0f),
+		  ymax(cy + size/2.0f),
+		  zmin(cz - size/2.0f),
+		  zmax(cz + size/2.0f),
+		  size(size), centerX(cx), centerY(cy), centerZ(cz),
+		  depth(d),
+		  children(NULL), value(initVal)
+		  
+	{
+	}
+	
+    template <typename T>
+    OcTreeDataNode<T>::OcTreeDataNode(const OcTreeDataNode<T>& rhs)
+		: xmin(rhs.xmin),
+		  xmax(rhs.xmax),
+		  ymin(rhs.ymin),
+		  ymax(rhs.ymax),
+		  zmin(rhs.zmin),
+		  zmax(rhs.zmax),
+		  size(rhs.size), centerX(rhs.centerX), centerY(rhs.centerY), centerZ(rhs.centerZ),
+		  depth(rhs.depth),
+		  children(NULL), value(rhs.value)
+	{
+		if (rhs.children != NULL){
+		    allocChildren();
+			for (unsigned i = 0; i<8; ++i){
+				if (rhs.children[i] != NULL)
+					children[i] = new OcTreeDataNode<T>(*(static_cast<OcTreeDataNode<T>*>(rhs.children[i])));
+
+			}
+		}
+	}
+	
+#else
+
   template <typename T>
   OcTreeDataNode<T>::OcTreeDataNode()
    : children(NULL)
@@ -46,7 +103,7 @@ namespace octomap {
   {
 
   }
-
+  
   template <typename T>
   OcTreeDataNode<T>::OcTreeDataNode(const OcTreeDataNode<T>& rhs)
    : children(NULL), value(rhs.value)
@@ -60,6 +117,7 @@ namespace octomap {
       }
     }
   }
+#endif
   
   template <typename T>
   OcTreeDataNode<T>::~OcTreeDataNode()

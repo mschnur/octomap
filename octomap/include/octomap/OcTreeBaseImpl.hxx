@@ -176,7 +176,17 @@ namespace octomap {
       allocNodeChildren(node);
     }
     assert (node->children[childIdx] == NULL);
+#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE
+	OcTreeKey childKey;
+	OcTreeKey parentKey = coordToKey(node->centerX, node->centerY, node->centerZ); 
+	key_type center_offset_key = tree_max_val >> (node->depth + 1);
+	computeChildKey(childIdx, center_offset_key, parentKey, childKey);
+	point3d childCenter = keyToCoord(childKey, node->depth + 1);
+	float childSize = static_cast<float>(getNodeSize(node->depth + 1));
+	NODE* newNode = new NODE(node->depth + 1, childSize, childCenter.x(), childCenter.y(), childCenter.z());
+#else
     NODE* newNode = new NODE();
+#endif
     node->children[childIdx] = static_cast<AbstractOcTreeNode*>(newNode);
     
     tree_size++;
@@ -537,7 +547,160 @@ namespace octomap {
     if (root)
       expandRecurs(root,0, tree_depth);
   }
-
+  
+    int first_node(double tx0, double ty0, double tz0, double txm, double tym, double tzm)
+	{
+		unsigned char answer = 0;	// initialize to 00000000
+		// select the entry plane and set bits
+		if(tx0 > ty0)
+		{
+			if(tx0 > tz0)
+			{   // PLANE YZ
+				if(tym < tx0) answer|=2;	// set bit at position 1
+				if(tzm < tx0) answer|=1;	// set bit at position 0 			
+				return (int) answer;
+			}
+		}
+		else
+		{ 	
+			if(ty0 > tz0)
+			{ // PLANE XZ
+				if(txm < ty0) answer|=4;	// set bit at position 2
+				if(tzm < ty0) answer|=1;	// set bit at position 0
+				return (int) answer;
+			}
+		}
+		// PLANE XY
+		if(txm < tz0) answer|=4;	// set bit at position 2
+		if(tym < tz0) answer|=2;	// set bit at position 1
+		return (int) answer;
+	}
+ 
+	int new_node(double txm, int x, double tym, int y, double tzm, int z)
+	{
+		if(txm < tym)
+		{
+			if(txm < tzm){return x;}  // YZ plane
+		}
+		else
+		{
+			if(tym < tzm){return y;} // XZ plane
+		}
+		
+		return z; // XY plane;
+	}
+	
+	template <class NODE>
+	void proc_subtree(double tx0, double tx0, double tz0,
+                      double tx1, double ty1, double tz1,
+                      NODE* n)
+	{
+		double txm, tym, tzm;
+		int currentNode;
+		
+		if (tx1 < 0.0 || ty1 < 0.0 || tz1 < 0.0)
+		{
+			return;
+		}
+		
+		if (!node->hasChildren())
+		{
+			// TODO: handle a leaf node
+		}
+		
+		txm = 0.5 * (tx0 + tx1);
+		tym = 0.5 * (ty0 + ty1);
+		tzm = 0.5 * (tz0 + tz1);
+		
+		currentNode = first_node(tx0, ty0, tz0, txm, tym, tzm);
+		do
+		{
+			switch (currentNode)
+			{
+				case 0:
+					proc_subtree(tx0, ty0, tz0, txm, tym, tzm, n->children[a]);
+					currentNode = new_node(txm, 4, tym, 2, tzm, 1);
+					break;
+					
+				case 1:
+					proc_subtree(tx0, ty0, tzm, txm, tym, tz1, n->children[1^a]);
+					currentNode = new_node(txm, 5, tym, 3, tz1, 8);
+					break;
+				
+				case 2:
+					proc_subtree(tx0, tym, tz0, txm, ty1, tzm, n->children[2^a]);
+					currentNode = new_node(txm, 6, ty1, 8, tzm, 3);
+					break;
+				
+				case 3:
+					proc_subtree(tx0, tym, tzm, txm, ty1, tz1, n->children[3^a]);
+					currentNode = new_node(txm, 7, ty1, 8, tz1, 8);
+					break;
+				
+				case 4:
+					proc_subtree(txm, ty0, tz0, tx1, tym, tzm, n->children[4^a]);
+					currentNode = new_node(tx1, 8, tym, 6, tzm, 5);
+					break;
+					
+				case 5:
+					proc_subtree(txm, ty0, tzm, tx1, tym, tz1, n->children[5^a]);
+					currentNode = new_node(tx1, 8, tym, 7, tz1, 8);
+					break;
+				
+				case 6:
+					proc_subtree(txm, tym, tz0, tx1, ty1, tzm, n->children[6^a]);
+					currentNode = new_node(tx1, 8, ty1, 8, tzm, 7);
+					break;
+					
+				case 7:
+					proc_subtree(txm, tym, tzm, tx1, ty1, tz1, n->children[7^a]);
+					currentNode = 8;
+					break;
+					
+				default:
+					assert(0);
+			}
+		} while (currentNode < 8);
+	}
+						  
+	
+    template <class NODE,class I>
+    bool OcTreeBaseImpl<NODE,I>::computeRayKeys(const Ray& r) {
+	    // Make sure total_metrix_size, min_value, and max_value arrays are up-to-date. Essentially a no-op if size 
+		// hasn't changed
+		calcMinMax();
+	  
+		if (r.dx < 0.0f) {
+			r.ox = total_metric_size[0] - r.ox;
+			r.dx = -r.dx;
+			a |= 4;
+		}
+		
+		if (r.dy < 0.0f) {
+			r.oy = total_metric_size[1] - r.oy;
+			r.dy = -r.dy;
+			a |= 2;
+		}
+		
+		if (r.dz < 0.0f) {
+			r.oz = total_metric_size[2] - r.oz;
+			r.dz = -r.dz;
+			a |= 1;
+		}
+		
+		double tx0 = (min_value[0] - r.ox) / r.dx;
+		double tx1 = (max_value[0] - r.ox) / r.dx;
+		double ty0 = (min_value[1] - r.oy) / r.dy;
+		double ty1 = (max_value[1] - r.oy) / r.dy;
+		double tz0 = (min_value[2] - r.oz) / r.dz;
+		double tz1 = (max_value[2] - r.oz) / r.dz;
+		
+		if (std::max(std::max(tx0, ty0), tz0) < std::min(std::min(tx1, ty1), tz1))
+		{
+			proc_subtree(tx0, ty0, tz-, tx1, ty1, tz1, root);
+		}
+    }
+  
   template <class NODE,class I>
   bool OcTreeBaseImpl<NODE,I>::computeRayKeys(const point3d& origin,
                                           const point3d& end, 
@@ -813,7 +976,11 @@ namespace octomap {
       return s;
     }
 
+#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE
+    root = new NODE(0, static_cast<float>(getNodeSize(0)), 0.0f, 0.0f, 0.0f);
+#else
     root = new NODE();
+#endif
     readNodesRecurs(root, s);
     
     tree_size = calcNumNodes();  // compute number of nodes
@@ -884,16 +1051,11 @@ namespace octomap {
 
   template <class NODE,class I>
   void OcTreeBaseImpl<NODE,I>::getMetricSize(double& x, double& y, double& z) const{
-
-    double minX, minY, minZ;
-    double maxX, maxY, maxZ;
-
-    getMetricMax(maxX, maxY, maxZ);
-    getMetricMin(minX, minY, minZ);
-
-    x = maxX - minX;
-    y = maxY - minY;
-    z = maxZ - minZ;
+	calcMinMax();
+	
+	x = total_metric_size[0];
+	y = total_metric_size[1];
+	z = total_metric_size[2];
   }
 
   template <class NODE,class I>
@@ -905,6 +1067,7 @@ namespace octomap {
     if (root == NULL){
       min_value[0] = min_value[1] = min_value[2] = 0.0;
       max_value[0] = max_value[1] = max_value[2] = 0.0;
+	  total_metric_size[0] = total_metric_size[1] = total_metric_size[2] = 0.0;
       size_changed = false;
       return;
     }
@@ -912,6 +1075,7 @@ namespace octomap {
     for (unsigned i = 0; i< 3; i++){
       max_value[i] = -std::numeric_limits<double>::max();
       min_value[i] = std::numeric_limits<double>::max();
+	  total_metric_size[0] = total_metric_size[1] = total_metric_size[2] = 0.0; 
     }
 
     for(typename OcTreeBaseImpl<NODE,I>::leaf_iterator it = this->begin(),
@@ -935,6 +1099,11 @@ namespace octomap {
 
     }
 
+	for (size_t i = 0; i < 3; ++i)
+	{
+		total_metric_size[i] = max_value[i] - min_value[i];
+	}
+	
     size_changed = false;
   }
 

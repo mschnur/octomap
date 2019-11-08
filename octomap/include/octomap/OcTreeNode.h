@@ -55,9 +55,13 @@ namespace octomap {
   class OcTreeNode : public OcTreeDataNode<float> {
 
   public:
+#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE
+	OcTreeNode(unsigned int depth, float size, float cx, float cy, float cz);
+#else
     OcTreeNode();
-    ~OcTreeNode();
+#endif
 
+    ~OcTreeNode();
     
     // -- node occupancy  ----------------------------
 

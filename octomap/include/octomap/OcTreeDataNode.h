@@ -65,10 +65,16 @@ namespace octomap {
     friend class OcTreeBaseImpl;
 
   public:
-
+#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE
+	float xmin, xmax, ymin, ymax, zmin, zmax;
+	float size, centerX, centerY, centerZ;
+	unsigned int depth;
+	OcTreeDataNode(unsigned int depth, float size, float cx, float cy, float cz);
+	OcTreeDataNode(T initVal, unsigned int depth, float size, float cx, float cy, float cz);
+#else
     OcTreeDataNode();
     OcTreeDataNode(T initVal);
-    
+#endif
     /// Copy constructor, performs a recursive deep-copy of all children 
     /// including node data in "value"
     OcTreeDataNode(const OcTreeDataNode& rhs);
