@@ -548,7 +548,8 @@ namespace octomap {
       expandRecurs(root,0, tree_depth);
   }
   
-    int first_node(double tx0, double ty0, double tz0, double txm, double tym, double tzm)
+  template <class NODE,class I>
+  int OcTreeBaseImpl<NODE,I>::first_node(double tx0, double ty0, double tz0, double txm, double tym, double tzm)
 	{
 		unsigned char answer = 0;	// initialize to 00000000
 		// select the entry plane and set bits
@@ -575,8 +576,9 @@ namespace octomap {
 		if(tym < tz0) answer|=2;	// set bit at position 1
 		return (int) answer;
 	}
- 
-	int new_node(double txm, int x, double tym, int y, double tzm, int z)
+  
+ 	template <class NODE,class I>
+  int OcTreeBaseImpl<NODE,I>::new_node(double txm, int x, double tym, int y, double tzm, int z)
 	{
 		if(txm < tym)
 		{
@@ -590,10 +592,10 @@ namespace octomap {
 		return z; // XY plane;
 	}
 	
-	template <class NODE>
-	void proc_subtree(double tx0, double tx0, double tz0,
+	template <class NODE,class I>
+  void OcTreeBaseImpl<NODE,I>::proc_subtree(double tx0, double ty0, double tz0,
                       double tx1, double ty1, double tz1,
-                      NODE* n)
+                      NODE* n, unsigned char a)
 	{
 		double txm, tym, tzm;
 		int currentNode;
@@ -603,7 +605,7 @@ namespace octomap {
 			return;
 		}
 		
-		if (!node->hasChildren())
+		if (!n->hasChildren())
 		{
 			// TODO: handle a leaf node
 		}
@@ -669,7 +671,8 @@ namespace octomap {
 	    // Make sure total_metrix_size, min_value, and max_value arrays are up-to-date. Essentially a no-op if size 
 		// hasn't changed
 		calcMinMax();
-	  
+	  unsigned char a = 0;
+
 		if (r.dx < 0.0f) {
 			r.ox = total_metric_size[0] - r.ox;
 			r.dx = -r.dx;
@@ -697,9 +700,10 @@ namespace octomap {
 		
 		if (std::max(std::max(tx0, ty0), tz0) < std::min(std::min(tx1, ty1), tz1))
 		{
-			proc_subtree(tx0, ty0, tz-, tx1, ty1, tz1, root);
+			proc_subtree(tx0, ty0, tz0, tx1, ty1, tz1, root, a);
 		}
-    }
+    return true;
+  }
   
   template <class NODE,class I>
   bool OcTreeBaseImpl<NODE,I>::computeRayKeys(const point3d& origin,
@@ -1031,12 +1035,8 @@ namespace octomap {
 
   }
 
-
-  // non-const versions, 
-  // change min/max/size_changed members
-
   template <class NODE,class I>
-  void OcTreeBaseImpl<NODE,I>::getMetricSize(double& x, double& y, double& z){
+  void OcTreeBaseImpl<NODE,I>::getMetricSize(double& x, double& y, double& z) const{
 
     double minX, minY, minZ;
     double maxX, maxY, maxZ;
@@ -1047,10 +1047,10 @@ namespace octomap {
     x = maxX - minX;
     y = maxY - minY;
     z = maxZ - minZ;
-  }
+  } 
 
   template <class NODE,class I>
-  void OcTreeBaseImpl<NODE,I>::getMetricSize(double& x, double& y, double& z) const{
+  void OcTreeBaseImpl<NODE,I>::getMetricSize(double& x, double& y, double& z) {
 	calcMinMax();
 	
 	x = total_metric_size[0];

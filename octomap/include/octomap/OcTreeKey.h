@@ -135,7 +135,7 @@ namespace octomap {
    */
   typedef unordered_ns::unordered_map<OcTreeKey, bool, OcTreeKey::KeyHash> KeyBoolMap;
 
-#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE
+//#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE
 	class Ray {
 		public:
 			unsigned char a;
@@ -156,7 +156,7 @@ namespace octomap {
 			}
 	
 	};
-#endif
+//#endif
 
   class KeyRay {
   public:

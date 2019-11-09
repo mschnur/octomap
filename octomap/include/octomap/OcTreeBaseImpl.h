@@ -235,6 +235,14 @@ namespace octomap {
     /// \note This is an expensive operation, especially when the tree is nearly empty!
     virtual void expand();
 
+
+    /// functions for Revelles algorithm 
+    int first_node(double tx0, double ty0, double tz0, double txm, double tym, double tzm);
+    int new_node(double txm, int x, double tym, int y, double tzm, int z);
+    void proc_subtree(double tx0, double ty0, double tz0,
+                      double tx1, double ty1, double tz1,
+                      NODE* n, unsigned char a);
+
     // -- statistics  ----------------------
 
     /// \return The number of nodes in the tree
@@ -280,7 +288,7 @@ namespace octomap {
 
     // -- raytracing  -----------------------
 
-   /**
+    /**
     * Traces a ray from origin to end (excluding), returning an
     * OcTreeKey of all nodes traversed by the beam. You still need to check
     * if a node at that coordinate exists (e.g. with search()).
@@ -291,6 +299,14 @@ namespace octomap {
     * @return Success of operation. Returning false usually means that one of the coordinates is out of the OcTree's range
     */
     bool computeRayKeys(const point3d& origin, const point3d& end, KeyRay& ray) const;
+
+    /**
+    * Traces a ray using the Revelles algorithm
+    *
+    * @param r Ray structure
+    * @return Success of operation. Returning false usually means that one of the coordinates is out of the OcTree's range
+    */
+    bool computeRayKeys(const Ray& r);
 
 
    /**
