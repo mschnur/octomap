@@ -386,6 +386,10 @@ namespace octomap {
                        double maxrange);
 
 
+    //Revelles algorithm for HTWFC
+    void computeUpdateRevelles(const Pointcloud& scan, const octomap::point3d& origin, double maxrange);
+
+
     /**
      * Helper for insertPointCloud(). Computes all octree nodes affected by the point cloud
      * integration at once. Here, occupied nodes have a preference over free

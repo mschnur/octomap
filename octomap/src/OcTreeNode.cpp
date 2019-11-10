@@ -41,7 +41,7 @@
 #include <octomap/OcTreeNode.h>
 
 namespace octomap {
-#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE
+#ifdef USE_REVELLES_RAY_TRACE_MOD_NODE
 	OcTreeNode::OcTreeNode(unsigned int d, float size, float cx, float cy, float cz)
 		: OcTreeDataNode<float>(0.0, d, size, cx, cy, cz)
     {

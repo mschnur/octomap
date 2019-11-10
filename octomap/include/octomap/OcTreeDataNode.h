@@ -65,7 +65,7 @@ namespace octomap {
     friend class OcTreeBaseImpl;
 
   public:
-#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE
+#ifdef USE_REVELLES_RAY_TRACE_MOD_NODE
 	float xmin, xmax, ymin, ymax, zmin, zmax;
 	float size, centerX, centerY, centerZ;
 	unsigned int depth;

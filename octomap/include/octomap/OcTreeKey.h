@@ -135,17 +135,19 @@ namespace octomap {
    */
   typedef unordered_ns::unordered_map<OcTreeKey, bool, OcTreeKey::KeyHash> KeyBoolMap;
 
-//#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE
+#ifdef USE_REVELLES_RAY_TRACE_MOD_NODE
 	class Ray {
 		public:
 			unsigned char a;
 			float ox, oy, oz;
 			float dx, dy, dz;
+      float destx, desty, destz;
 		
 			Ray(const point3d& origin, const point3d& end)
 				: a(0),
 				  ox(origin.x()), oy(origin.y()), oz(origin.z()),
-				  dx(0.0f), dy(0.0f), dz(0.0f)
+				  dx(0.0f), dy(0.0f), dz(0.0f),
+          destx(end.x()), desty(end.y()), destz(end.z())
 			{
 				point3d direction = (end - origin);
 				float length = (float) direction.norm();
@@ -156,7 +158,7 @@ namespace octomap {
 			}
 	
 	};
-//#endif
+#endif
 
   class KeyRay {
   public:

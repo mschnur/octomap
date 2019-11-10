@@ -33,7 +33,7 @@
 
 namespace octomap {
 
-#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE	
+#ifdef USE_REVELLES_RAY_TRACE_MOD_NODE	
 	template <typename T>
 	OcTreeDataNode<T>::OcTreeDataNode(unsigned int d, float size, float cx, float cy, float cz)
 		: xmin(cx - size/2.0f),

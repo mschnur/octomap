@@ -176,7 +176,7 @@ namespace octomap {
       allocNodeChildren(node);
     }
     assert (node->children[childIdx] == NULL);
-#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE
+#ifdef USE_REVELLES_RAY_TRACE_MOD_NODE
 	OcTreeKey childKey;
 	OcTreeKey parentKey = coordToKey(node->centerX, node->centerY, node->centerZ); 
 	key_type center_offset_key = tree_max_val >> (node->depth + 1);
@@ -595,9 +595,10 @@ namespace octomap {
 	template <class NODE,class I>
   void OcTreeBaseImpl<NODE,I>::proc_subtree(double tx0, double ty0, double tz0,
                       double tx1, double ty1, double tz1,
-                      NODE* n, unsigned char a)
+                      NODE* n, unsigned char a, Ray& r)
 	{
-		double txm, tym, tzm;
+		OCTOMAP_ERROR("proc_subtree\n");
+    double txm, tym, tzm;
 		int currentNode;
 		
 		if (tx1 < 0.0 || ty1 < 0.0 || tz1 < 0.0)
@@ -605,9 +606,21 @@ namespace octomap {
 			return;
 		}
 		
-		if (!n->hasChildren())
+		if (!nodeHasChildren(n))
 		{
+      OCTOMAP_ERROR_STR("Reached leaf node!");
 			// TODO: handle a leaf node
+      // if contains endpoint - update logs
+      //assuming asix aligned cube
+      if(n->xmin <= r.destx && r.destx <= n->xmax &&
+        n->ymin <= r.desty && r.desty <= n->ymax &&
+        n->zmin <= r.destz && r.destz <= n->zmax){
+          n->setLogOdds(n->getLogOdds()+1);
+      }
+
+      // if between origin and dest - update logs
+
+      //else nothing
 		}
 		
 		txm = 0.5 * (tx0 + tx1);
@@ -620,42 +633,42 @@ namespace octomap {
 			switch (currentNode)
 			{
 				case 0:
-					proc_subtree(tx0, ty0, tz0, txm, tym, tzm, n->children[a]);
+					proc_subtree(tx0, ty0, tz0, txm, tym, tzm, getNodeChild(n,a), a, r);
 					currentNode = new_node(txm, 4, tym, 2, tzm, 1);
 					break;
 					
 				case 1:
-					proc_subtree(tx0, ty0, tzm, txm, tym, tz1, n->children[1^a]);
+					proc_subtree(tx0, ty0, tzm, txm, tym, tz1, getNodeChild(n,1^a), a, r);
 					currentNode = new_node(txm, 5, tym, 3, tz1, 8);
 					break;
 				
 				case 2:
-					proc_subtree(tx0, tym, tz0, txm, ty1, tzm, n->children[2^a]);
+					proc_subtree(tx0, tym, tz0, txm, ty1, tzm, getNodeChild(n,2^a), a, r);
 					currentNode = new_node(txm, 6, ty1, 8, tzm, 3);
 					break;
 				
 				case 3:
-					proc_subtree(tx0, tym, tzm, txm, ty1, tz1, n->children[3^a]);
+					proc_subtree(tx0, tym, tzm, txm, ty1, tz1, getNodeChild(n,3^a), a, r);
 					currentNode = new_node(txm, 7, ty1, 8, tz1, 8);
 					break;
 				
 				case 4:
-					proc_subtree(txm, ty0, tz0, tx1, tym, tzm, n->children[4^a]);
+					proc_subtree(txm, ty0, tz0, tx1, tym, tzm, getNodeChild(n,4^a), a, r);
 					currentNode = new_node(tx1, 8, tym, 6, tzm, 5);
 					break;
 					
 				case 5:
-					proc_subtree(txm, ty0, tzm, tx1, tym, tz1, n->children[5^a]);
+					proc_subtree(txm, ty0, tzm, tx1, tym, tz1, getNodeChild(n,5^a), a, r);
 					currentNode = new_node(tx1, 8, tym, 7, tz1, 8);
 					break;
 				
 				case 6:
-					proc_subtree(txm, tym, tz0, tx1, ty1, tzm, n->children[6^a]);
+					proc_subtree(txm, tym, tz0, tx1, ty1, tzm, getNodeChild(n,6^a), a, r);
 					currentNode = new_node(tx1, 8, ty1, 8, tzm, 7);
 					break;
 					
 				case 7:
-					proc_subtree(txm, tym, tzm, tx1, ty1, tz1, n->children[7^a]);
+					proc_subtree(txm, tym, tzm, tx1, ty1, tz1, getNodeChild(n,7^a), a, r);
 					currentNode = 8;
 					break;
 					
@@ -667,8 +680,9 @@ namespace octomap {
 						  
 	
     template <class NODE,class I>
-    bool OcTreeBaseImpl<NODE,I>::computeRayKeys(const Ray& r) {
-	    // Make sure total_metrix_size, min_value, and max_value arrays are up-to-date. Essentially a no-op if size 
+    bool OcTreeBaseImpl<NODE,I>::computeRayKeys(Ray& r) {
+	  OCTOMAP_ERROR("computeRayKeys\n");
+      // Make sure total_metrix_size, min_value, and max_value arrays are up-to-date. Essentially a no-op if size 
 		// hasn't changed
 		calcMinMax();
 	  unsigned char a = 0;
@@ -700,7 +714,7 @@ namespace octomap {
 		
 		if (std::max(std::max(tx0, ty0), tz0) < std::min(std::min(tx1, ty1), tz1))
 		{
-			proc_subtree(tx0, ty0, tz0, tx1, ty1, tz1, root, a);
+			proc_subtree(tx0, ty0, tz0, tx1, ty1, tz1, root, a, r);
 		}
     return true;
   }
@@ -980,7 +994,7 @@ namespace octomap {
       return s;
     }
 
-#if defined(USE_REVELLES_RAY_TRACE_MOD_NODE) && USE_REVELLES_RAY_TRACE_MOD_NODE
+#ifdef USE_REVELLES_RAY_TRACE_MOD_NODE
     root = new NODE(0, static_cast<float>(getNodeSize(0)), 0.0f, 0.0f, 0.0f);
 #else
     root = new NODE();
