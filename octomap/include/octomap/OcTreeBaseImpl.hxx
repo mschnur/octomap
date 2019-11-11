@@ -685,7 +685,7 @@ namespace octomap {
       // Make sure total_metrix_size, min_value, and max_value arrays are up-to-date. Essentially a no-op if size 
 		// hasn't changed
 		calcMinMax();
-	  unsigned char a = 0;
+	    unsigned char a = 0;
 
 		if (r.dx < 0.0f) {
 			r.ox = total_metric_size[0] - r.ox;
@@ -705,12 +705,20 @@ namespace octomap {
 			a |= 1;
 		}
 		
-		double tx0 = (min_value[0] - r.ox) / r.dx;
-		double tx1 = (max_value[0] - r.ox) / r.dx;
-		double ty0 = (min_value[1] - r.oy) / r.dy;
-		double ty1 = (max_value[1] - r.oy) / r.dy;
-		double tz0 = (min_value[2] - r.oz) / r.dz;
-		double tz1 = (max_value[2] - r.oz) / r.dz;
+		// Improve IEEE double stability
+		double rdxInverse = 1.0 / r.dx;
+		double rdyInverse = 1.0 / r.dy;
+		double rdzInverse = 1.0 / r.dz;
+		
+		double tx0 = (min_value[0] - r.ox) * rdxInverse;
+		double tx1 = (max_value[0] - r.ox) * rdxInverse;
+		double ty0 = (min_value[1] - r.oy) * rdyInverse;
+		double ty1 = (max_value[1] - r.oy) * rdyInverse;
+		double tz0 = (min_value[2] - r.oz) * rdzInverse;
+		double tz1 = (max_value[2] - r.oz) * rdzInverse;
+		
+		OCTOMAP_ERROR("txyz0: %lf %lf %lf\n", tx0, ty0, tz0);
+		OCTOMAP_ERROR("txyz1: %lf %lf %lf\n", tx1, ty1, tz1);
 		
 		if (std::max(std::max(tx0, ty0), tz0) < std::min(std::min(tx1, ty1), tz1))
 		{
