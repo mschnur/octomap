@@ -183,7 +183,7 @@ namespace octomap {
    computeUpdate(discretePC, origin, free_cells, occupied_cells, maxrange);
  }
 
-
+#ifdef USE_REVELLES_RAY_TRACE_MOD_NODE
   template <class NODE>
   void OccupancyOcTreeBase<NODE>::computeUpdateRevelles(const Pointcloud& scan, const octomap::point3d& origin, double maxrange){
     OCTOMAP_ERROR("computeUpdateRevelles\n");
@@ -193,7 +193,7 @@ namespace octomap {
       this->computeRayKeys(ray);
     }
   }
-
+#endif
 
   template <class NODE>
   void OccupancyOcTreeBase<NODE>::computeUpdate(const Pointcloud& scan, const octomap::point3d& origin,
@@ -409,6 +409,8 @@ namespace octomap {
     bool created_node = false;
 
     assert(node);
+
+	//OCTOMAP_WARNING_STR("updateNodeRecurs key = [" << key[0] << ", " << key[1] << ", " << key[2] << "]; depth = " << depth);
 
     // follow down to last level
     if (depth < this->tree_depth) {

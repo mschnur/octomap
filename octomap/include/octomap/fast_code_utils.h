@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 #ifndef USE_PMC
-#define USE_PMC 0
+#define USE_PMC 1
 #endif
 
 #if USE_PMC

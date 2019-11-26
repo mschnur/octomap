@@ -237,10 +237,11 @@ namespace octomap {
 
 
     /// functions for Revelles algorithm 
+#ifdef USE_REVELLES_RAY_TRACE_MOD_NODE
     int first_node(double tx0, double ty0, double tz0, double txm, double tym, double tzm);
     int new_node(double txm, int x, double tym, int y, double tzm, int z);
     void proc_subtree(double tx0, double ty0, double tz0, double tx1, double ty1, double tz1, NODE* n, unsigned char a, Ray& r);
-
+#endif
     // -- statistics  ----------------------
 
     /// \return The number of nodes in the tree
@@ -298,6 +299,7 @@ namespace octomap {
     */
     bool computeRayKeys(const point3d& origin, const point3d& end, KeyRay& ray) const;
 
+#ifdef USE_REVELLES_RAY_TRACE_MOD_NODE
     /**
     * Traces a ray using the Revelles algorithm
     *
@@ -305,7 +307,7 @@ namespace octomap {
     * @return Success of operation. Returning false usually means that one of the coordinates is out of the OcTree's range
     */
     bool computeRayKeys(Ray& r);
-
+#endif
 
    /**
     * Traces a ray from origin to end (excluding), returning the

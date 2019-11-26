@@ -35,6 +35,9 @@
 #undef min
 #include <limits>
 
+#include "fast_code_utils.h"
+#include <iostream>
+
 #ifdef _OPENMP
   #include <omp.h>
 #endif
@@ -547,7 +550,7 @@ namespace octomap {
     if (root)
       expandRecurs(root,0, tree_depth);
   }
-  
+#ifdef USE_REVELLES_RAY_TRACE_MOD_NODE 
   template <class NODE,class I>
   int OcTreeBaseImpl<NODE,I>::first_node(double tx0, double ty0, double tz0, double txm, double tym, double tzm)
 	{
@@ -591,7 +594,7 @@ namespace octomap {
 		
 		return z; // XY plane;
 	}
-	
+
 	template <class NODE,class I>
   void OcTreeBaseImpl<NODE,I>::proc_subtree(double tx0, double ty0, double tz0,
                       double tx1, double ty1, double tz1,
@@ -681,6 +684,17 @@ namespace octomap {
 	
     template <class NODE,class I>
     bool OcTreeBaseImpl<NODE,I>::computeRayKeys(Ray& r) {
+		if (this->root == NULL){
+#ifdef USE_REVELLES_RAY_TRACE_MOD_NODE
+			this->root = new NODE(0, static_cast<float>(getNodeSize(0)), 0.0f, 0.0f, 0.0f);;
+#else
+			this->root = new NODE();
+#endif
+	  this->tree_size++;
+      this->size_changed = true;
+	  //this->expand();
+    }
+		
 	  OCTOMAP_ERROR("computeRayKeys\n");
       // Make sure total_metrix_size, min_value, and max_value arrays are up-to-date. Essentially a no-op if size 
 		// hasn't changed
@@ -726,7 +740,7 @@ namespace octomap {
 		}
     return true;
   }
-  
+#endif
   template <class NODE,class I>
   bool OcTreeBaseImpl<NODE,I>::computeRayKeys(const point3d& origin,
                                           const point3d& end, 
@@ -734,6 +748,14 @@ namespace octomap {
 
     // see "A Faster Voxel Traversal Algorithm for Ray Tracing" by Amanatides & Woo
     // basically: DDA in 3D
+	static unsigned long long pre_init_total_cycles = 0;
+	static unsigned long long init_total_cycles = 0;
+	static unsigned long long increment_total_cycles = 0;
+	static unsigned long long num_calls = 0;
+	
+	unsigned long long pre_init_start, pre_init_end, init_end, increment_end;
+	
+	pre_init_start = rdtsc();
 
     ray.reset();
 
@@ -750,6 +772,8 @@ namespace octomap {
       return true; // same tree cell, we're done.
 
     ray.addKey(key_origin);
+	
+	pre_init_end = rdtsc();
 
     // Initialization phase -------------------------------------------------------
 
@@ -783,6 +807,8 @@ namespace octomap {
         tDelta[i] = std::numeric_limits<double>::max( );
       }
     }
+	
+	init_end = rdtsc();
 
     // Incremental phase  ---------------------------------------------------------
 
@@ -832,7 +858,20 @@ namespace octomap {
       assert ( ray.size() < ray.sizeMax() - 1);
       
     } // end while
+	
+	increment_end = rdtsc();
+	
+	pre_init_total_cycles += pre_init_end - pre_init_start;
+	init_total_cycles += init_end - pre_init_end;
+	increment_total_cycles += increment_end - init_end;
+	num_calls++;
 
+/*
+	std::cout << "pre-init avg # cycles: " << static_cast<double>(pre_init_total_cycles) / static_cast<double>(num_calls) << std::endl
+	          << "init avg # cycles: " << static_cast<double>(init_total_cycles) / static_cast<double>(num_calls) << std::endl
+			  << "increment avg # cycles: " << static_cast<double>(increment_total_cycles) / static_cast<double>(num_calls) << std::endl
+			  << "# calls: " << num_calls << std::endl;
+*/
     return true;
   }
 
